@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { DollarSign, TrendingUp, Activity, Wallet } from "lucide-react";
-import { Header } from "@/components/dashboard/Header";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { BotStatus } from "@/components/dashboard/BotStatus";
 import { PositionsTable } from "@/components/dashboard/PositionsTable";
 import { TradeHistory } from "@/components/dashboard/TradeHistory";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { LogsPanel } from "@/components/dashboard/LogsPanel";
+import { MainLayout } from "@/components/layout/MainLayout";
 
 const Index = () => {
   const [isBotRunning, setIsBotRunning] = useState(true);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="container px-6 py-8">
+    <MainLayout>
+      <div className="px-6 py-8">
         {/* Stats Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatsCard
@@ -71,8 +69,8 @@ const Index = () => {
 
         {/* Logs */}
         <LogsPanel />
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 
