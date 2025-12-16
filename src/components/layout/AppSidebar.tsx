@@ -10,6 +10,8 @@ import {
   Coins,
   TrendingUp,
   TrendingDown,
+  Power,
+  Loader2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,24 +32,8 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
-interface TradingPair {
-  symbol: string;
-  name: string;
-  change: number;
-  isActive: boolean;
-}
-
-const mockPairs: TradingPair[] = [
-  { symbol: "BTC/USDT", name: "Bitcoin", change: 2.45, isActive: true },
-  { symbol: "ETH/USDT", name: "Ethereum", change: -1.32, isActive: true },
-  { symbol: "SOL/USDT", name: "Solana", change: 5.67, isActive: true },
-  { symbol: "BNB/USDT", name: "Binance Coin", change: 0.89, isActive: true },
-  { symbol: "XRP/USDT", name: "Ripple", change: -0.45, isActive: false },
-  { symbol: "ADA/USDT", name: "Cardano", change: 1.23, isActive: false },
-  { symbol: "DOGE/USDT", name: "Dogecoin", change: 3.21, isActive: true },
-  { symbol: "DOT/USDT", name: "Polkadot", change: -2.11, isActive: false },
-];
+import { Button } from "@/components/ui/button";
+import { useBotContext } from "@/contexts/BotContext";
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/" },
@@ -59,18 +45,38 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const [pairsOpen, setPairsOpen] = useState(true);
-  const activePairsCount = mockPairs.filter((p) => p.isActive).length;
+  const { globalStatus, selectedSymbol, setSelectedSymbol, isConnected, isLoading, toggleBot } = useBotContext();
+
+  const pairs = globalStatus?.pairs ? Object.values(globalStatus.pairs) : [];
+  const activePairsCount = pairs.filter((p) => p.running).length;
+
+  const handleToggleBot = (e: React.MouseEvent, symbol: string, running: boolean) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleBot(symbol, running);
+  };
 
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-xl">
-            <Bot className="h-6 w-6 text-primary" />
+          <div className={cn(
+            "p-2 rounded-xl",
+            isConnected ? "bg-success/10" : "bg-destructive/10"
+          )}>
+            <Bot className={cn(
+              "h-6 w-6",
+              isConnected ? "text-success" : "text-destructive"
+            )} />
           </div>
           <div className="flex-1">
             <h1 className="text-base font-bold text-sidebar-foreground">Trading Bot</h1>
-            <p className="text-xs text-muted-foreground">Painel de Controle</p>
+            <p className={cn(
+              "text-xs",
+              isConnected ? "text-success" : "text-destructive"
+            )}>
+              {isConnected ? "Conectado" : "Desconectado"}
+            </p>
           </div>
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         </div>
@@ -110,13 +116,13 @@ export function AppSidebar() {
                 <div className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Pares Ativos
+                    Pares
                   </span>
                   <Badge
                     variant="secondary"
                     className="h-5 px-1.5 text-xs bg-primary/10 text-primary border-0"
                   >
-                    {activePairsCount}
+                    {activePairsCount}/{pairs.length}
                   </Badge>
                 </div>
                 <ChevronDown
@@ -129,51 +135,76 @@ export function AppSidebar() {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarGroupContent>
-                <SidebarMenu className="mt-2">
-                  {mockPairs.map((pair) => (
-                    <SidebarMenuItem key={pair.symbol}>
-                      <SidebarMenuButton
-                        asChild
-                        className="h-auto py-2.5"
-                        tooltip={`${pair.name} (${pair.symbol})`}
-                      >
-                        <Link
-                          to={`/par/${pair.symbol.replace("/", "-").toLowerCase()}`}
-                          className="flex items-center justify-between w-full"
+                {isLoading ? (
+                  <div className="p-4 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : pairs.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-muted-foreground">
+                    Aguardando conexão...
+                  </div>
+                ) : (
+                  <SidebarMenu className="mt-2">
+                    {pairs.map((pair) => (
+                      <SidebarMenuItem key={pair.symbol}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={selectedSymbol === pair.symbol}
+                          className="h-auto py-2.5"
+                          tooltip={pair.symbol}
                         >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={cn(
-                                "h-2 w-2 rounded-full",
-                                pair.isActive ? "bg-success animate-pulse" : "bg-muted-foreground"
-                              )}
-                            />
-                            <div>
-                              <p className="font-medium text-sm text-sidebar-foreground">
-                                {pair.symbol}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{pair.name}</p>
-                            </div>
-                          </div>
-                          <div
-                            className={cn(
-                              "flex items-center gap-1 text-xs font-medium",
-                              pair.change >= 0 ? "text-success" : "text-destructive"
-                            )}
+                          <button
+                            onClick={() => setSelectedSymbol(pair.symbol)}
+                            className="flex items-center justify-between w-full"
                           >
-                            {pair.change >= 0 ? (
-                              <TrendingUp className="h-3 w-3" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3" />
-                            )}
-                            {pair.change >= 0 ? "+" : ""}
-                            {pair.change.toFixed(2)}%
-                          </div>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "h-2 w-2 rounded-full",
+                                  pair.running ? "bg-success animate-pulse" : "bg-muted-foreground"
+                                )}
+                              />
+                              <div className="text-left">
+                                <p className="font-medium text-sm text-sidebar-foreground">
+                                  {pair.symbol}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  ${pair.current_price?.toLocaleString() ?? "--"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={cn(
+                                  "flex items-center gap-1 text-xs font-medium",
+                                  pair.pnl >= 0 ? "text-success" : "text-destructive"
+                                )}
+                              >
+                                {pair.pnl >= 0 ? (
+                                  <TrendingUp className="h-3 w-3" />
+                                ) : (
+                                  <TrendingDown className="h-3 w-3" />
+                                )}
+                                {pair.pnl >= 0 ? "+" : ""}{pair.pnl?.toFixed(2) ?? "0.00"}%
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  "h-6 w-6 rounded-full",
+                                  pair.running ? "text-success hover:text-destructive" : "text-muted-foreground hover:text-success"
+                                )}
+                                onClick={(e) => handleToggleBot(e, pair.symbol, pair.running)}
+                              >
+                                <Power className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                )}
               </SidebarGroupContent>
             </CollapsibleContent>
           </Collapsible>
