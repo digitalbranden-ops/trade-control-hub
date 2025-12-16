@@ -70,29 +70,60 @@ python --version
 
 ## 📥 PASSO 4: Conectar ao GitHub e Baixar o Código
 
-### 4.1 - Conectar o Lovable ao GitHub (faça isso no navegador):
-1. No Lovable, clique em **Settings** (engrenagem) no canto superior direito
-2. Clique na aba **"GitHub"**
-3. Clique em **"Connect to GitHub"**
-4. Faça login na sua conta GitHub (ou crie uma em github.com)
-5. Autorize o Lovable
-6. Clique em **"Create Repository"**
-7. Aguarde criar o repositório
+### 4.1 - Criar conta no GitHub (se não tiver):
+1. Acesse: https://github.com
+2. Clique em **"Sign up"**
+3. Preencha email, senha e nome de usuário
+4. Confirme o email
 
-### 4.2 - Baixar o código no seu computador:
-1. Abra o Prompt de Comando
-2. Navegue até onde quer salvar (exemplo: Desktop):
+### 4.2 - Conectar Lovable ao GitHub:
+
+**No Lovable (onde você está agora):**
+
+1. Olhe no canto superior direito, clique no ícone de **engrenagem (⚙️ Settings)**
+2. Na janela que abrir, clique na aba **"GitHub"** no menu lateral esquerdo
+3. Clique no botão verde **"Connect to GitHub"**
+4. Uma nova janela vai abrir pedindo para fazer login no GitHub - faça login
+5. Clique em **"Authorize Lovable"** (autorizar)
+6. Volte para o Lovable
+7. Clique no botão **"Create Repository"**
+8. Escolha um nome para o repositório (ex: "trading-panel")
+9. Clique em **"Create"**
+10. **AGUARDE** - vai aparecer "Syncing..." e depois um ✓ verde
+
+**✅ PRONTO! Agora seu código JÁ ESTÁ no GitHub!**
+
+### 4.3 - Copiar o link do repositório:
+
+1. Ainda na aba GitHub do Lovable, você verá o nome do repositório criado
+2. Clique nele - vai abrir o GitHub no navegador
+3. Na página do GitHub, clique no botão verde **"<> Code"**
+4. Copie o link HTTPS (será algo como: `https://github.com/SEU_USUARIO/trading-panel.git`)
+
+### 4.4 - Baixar o código no seu computador:
+
+1. Abra o **Prompt de Comando** (digite "cmd" na busca do Windows)
+2. Digite este comando para ir para a Área de Trabalho:
 ```
 cd Desktop
 ```
-3. Clone o repositório (substitua SEU_USUARIO pelo seu usuário do GitHub):
+3. Digite o comando abaixo, **COLE o link que você copiou** no lugar indicado:
 ```
-git clone https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
+git clone COLE_O_LINK_AQUI
 ```
-4. Entre na pasta do projeto:
+
+**Exemplo real:**
 ```
-cd NOME_DO_REPOSITORIO
+git clone https://github.com/joao123/trading-panel.git
 ```
+
+4. Pressione **Enter** e aguarde baixar
+5. Entre na pasta do projeto:
+```
+cd trading-panel
+```
+
+**✅ PRONTO! O código está no seu computador!**
 
 ---
 
