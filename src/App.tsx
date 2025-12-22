@@ -9,6 +9,7 @@ import Historico from "./pages/Historico";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import PairDetails from "./pages/PairDetails";
+import TradePanelMockup from "./pages/TradePanelMockup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
             <Route path="/par/:symbol" element={<PairDetails />} />
+            <Route path="/mockup" element={<TradePanelMockup />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
