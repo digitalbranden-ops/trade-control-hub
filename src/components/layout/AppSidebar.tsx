@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   History,
@@ -12,6 +12,7 @@ import {
   TrendingDown,
   Power,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [pairsOpen, setPairsOpen] = useState(true);
   const { globalStatus, selectedSymbol, setSelectedSymbol, isConnected, isLoading, toggleBot } = useBotContext();
 
@@ -54,6 +56,11 @@ export function AppSidebar() {
     e.preventDefault();
     e.stopPropagation();
     toggleBot(symbol, running);
+  };
+
+  const handleOpenPair = (symbol: string) => {
+    const encodedSymbol = symbol.replace('/', '-');
+    navigate(`/par/${encodedSymbol}`);
   };
 
   return (
@@ -149,12 +156,15 @@ export function AppSidebar() {
                       <SidebarMenuItem key={pair.symbol}>
                         <SidebarMenuButton
                           asChild
-                          isActive={selectedSymbol === pair.symbol}
+                          isActive={selectedSymbol === pair.symbol || location.pathname === `/par/${pair.symbol.replace('/', '-')}`}
                           className="h-auto py-2.5"
                           tooltip={pair.symbol}
                         >
                           <button
-                            onClick={() => setSelectedSymbol(pair.symbol)}
+                            onClick={() => {
+                              setSelectedSymbol(pair.symbol);
+                              handleOpenPair(pair.symbol);
+                            }}
                             className="flex items-center justify-between w-full"
                           >
                             <div className="flex items-center gap-3">
@@ -165,8 +175,9 @@ export function AppSidebar() {
                                 )}
                               />
                               <div className="text-left">
-                                <p className="font-medium text-sm text-sidebar-foreground">
+                                <p className="font-medium text-sm text-sidebar-foreground flex items-center gap-1">
                                   {pair.symbol}
+                                  <ExternalLink className="h-3 w-3 opacity-50" />
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   ${pair.current_price?.toLocaleString() ?? "--"}
