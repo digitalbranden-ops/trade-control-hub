@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Power, Settings, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Power, TrendingUp, TrendingDown, Loader2, ChevronDown, Activity, Target, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TradingChart } from '@/components/charts/TradingChart';
 import { useCandleData, useSymbolStatus, useRealtimePrice } from '@/hooks/useBotData';
@@ -15,7 +21,9 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { getPosition, type Position } from '@/services/botApi';
 
-const timeframes = ['5m', '15m', '1h', '4h', '1d'];
+// Timeframes principais (visíveis) e secundários (dropdown)
+const mainTimeframes = ['1m', '5m', '15m', '30m', '1h', '4h', '1D'];
+const moreTimeframes = ['10m', '2h', '8h', '12h', '3D', '1W', '1M'];
 
 export default function PairDetails() {
   const { symbol } = useParams<{ symbol: string }>();
@@ -35,6 +43,10 @@ export default function PairDetails() {
   const [tp4, setTp4] = useState(7.5);
   const [stopLoss, setStopLoss] = useState(1.4);
   const [trailingStop, setTrailingStop] = useState(3.0);
+  
+  // Exposure settings
+  const [positionSize, setPositionSize] = useState(10);
+  const [leverage, setLeverage] = useState(10);
   
   const decodedSymbol = symbol ? decodeURIComponent(symbol).replace('-', '/') : '';
   
@@ -68,12 +80,15 @@ export default function PairDetails() {
     }
   };
 
+  const isMoreTimeframe = moreTimeframes.includes(selectedTimeframe);
+
   return (
     <MainLayout>
       <div className="flex flex-col h-full">
         {/* Header - Compact */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/50">
+          {/* Left side - Back, Symbol, Price */}
+          <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
               size="icon"
@@ -85,12 +100,12 @@ export default function PairDetails() {
             
             <div className="flex items-center gap-3">
               <div className={cn(
-                "h-2.5 w-2.5 rounded-full",
+                "h-2 w-2 rounded-full",
                 status?.running ? "bg-success animate-pulse" : "bg-muted-foreground"
               )} />
-              <h1 className="text-lg font-bold text-foreground">{decodedSymbol}</h1>
+              <h1 className="text-base font-bold text-foreground">{decodedSymbol}</h1>
               
-              <span className="text-lg font-mono text-foreground">
+              <span className="text-base font-mono text-foreground">
                 ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <Badge 
@@ -104,18 +119,16 @@ export default function PairDetails() {
                 {change24h >= 0 ? '+' : ''}{change24h.toFixed(2)}%
               </Badge>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
             {/* Timeframe selector */}
-            <div className="flex bg-secondary rounded-lg p-0.5">
-              {timeframes.map(tf => (
+            <div className="flex items-center bg-secondary rounded-lg p-0.5 ml-4">
+              {mainTimeframes.map(tf => (
                 <Button
                   key={tf}
                   variant={selectedTimeframe === tf ? "default" : "ghost"}
                   size="sm"
                   className={cn(
-                    "px-2.5 py-1 h-7 text-xs",
+                    "px-2 py-1 h-6 text-xs",
                     selectedTimeframe === tf && "bg-primary text-primary-foreground"
                   )}
                   onClick={() => setSelectedTimeframe(tf)}
@@ -123,100 +136,145 @@ export default function PairDetails() {
                   {tf}
                 </Button>
               ))}
+              
+              {/* Dropdown for more timeframes */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={isMoreTimeframe ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "px-2 py-1 h-6 text-xs gap-1",
+                      isMoreTimeframe && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {isMoreTimeframe ? selectedTimeframe : 'Mais'}
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-card border-border">
+                  {moreTimeframes.map(tf => (
+                    <DropdownMenuItem
+                      key={tf}
+                      onClick={() => setSelectedTimeframe(tf)}
+                      className={cn(
+                        "text-xs cursor-pointer",
+                        selectedTimeframe === tf && "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {tf}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </div>
 
-            {/* Toggle indicators */}
-            <Button
-              variant={showIndicators ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => setShowIndicators(!showIndicators)}
-            >
-              Indicadores
-            </Button>
-
-            {/* Settings gear */}
+          {/* Right side - Config buttons and Bot control */}
+          <div className="flex items-center gap-2">
+            {/* Indicador config */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8">
-                  <Settings className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <Activity className="h-3.5 w-3.5" />
+                  Indicador
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-80 bg-card border-border overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle className="text-foreground">Configurações da Estratégia</SheetTitle>
+                  <SheetTitle className="text-foreground">Configurar Indicador</SheetTitle>
+                </SheetHeader>
+                
+                <div className="mt-6 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-xs text-muted-foreground">EMA Período</Label>
+                      <span className="text-xs font-mono text-foreground">{emaPeriod}</span>
+                    </div>
+                    <Slider
+                      value={[emaPeriod]}
+                      onValueChange={([v]) => setEmaPeriod(v)}
+                      min={3}
+                      max={50}
+                      step={1}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-xs text-muted-foreground">Suavização</Label>
+                      <span className="text-xs font-mono text-foreground">{smoothing}</span>
+                    </div>
+                    <Slider
+                      value={[smoothing]}
+                      onValueChange={([v]) => setSmoothing(v)}
+                      min={10}
+                      max={100}
+                      step={1}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-xs text-muted-foreground">Desvio Período</Label>
+                      <span className="text-xs font-mono text-foreground">{deviationPeriod}</span>
+                    </div>
+                    <Slider
+                      value={[deviationPeriod]}
+                      onValueChange={([v]) => setDeviationPeriod(v)}
+                      min={20}
+                      max={200}
+                      step={5}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-xs text-muted-foreground">Força Magnética</Label>
+                      <span className="text-xs font-mono text-foreground">{magneticStrength}</span>
+                    </div>
+                    <Slider
+                      value={[magneticStrength]}
+                      onValueChange={([v]) => setMagneticStrength(v)}
+                      min={50}
+                      max={300}
+                      step={5}
+                    />
+                  </div>
+
+                  <Separator className="my-4" />
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Mostrar no Gráfico</Label>
+                    <Button
+                      variant={showIndicators ? "default" : "outline"}
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShowIndicators(!showIndicators)}
+                    >
+                      {showIndicators ? 'Indicadores Visíveis' : 'Indicadores Ocultos'}
+                    </Button>
+                  </div>
+                  
+                  <Button className="w-full mt-4">Salvar</Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Estratégia config */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <Target className="h-3.5 w-3.5" />
+                  Estratégia
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-80 bg-card border-border overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle className="text-foreground">Configurar Estratégia</SheetTitle>
                 </SheetHeader>
                 
                 <div className="mt-6 space-y-6">
-                  {/* Indicator Settings */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-foreground">Indicadores</h3>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label className="text-xs text-muted-foreground">EMA Período</Label>
-                          <span className="text-xs font-mono text-foreground">{emaPeriod}</span>
-                        </div>
-                        <Slider
-                          value={[emaPeriod]}
-                          onValueChange={([v]) => setEmaPeriod(v)}
-                          min={3}
-                          max={50}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label className="text-xs text-muted-foreground">Suavização</Label>
-                          <span className="text-xs font-mono text-foreground">{smoothing}</span>
-                        </div>
-                        <Slider
-                          value={[smoothing]}
-                          onValueChange={([v]) => setSmoothing(v)}
-                          min={10}
-                          max={100}
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label className="text-xs text-muted-foreground">Desvio Período</Label>
-                          <span className="text-xs font-mono text-foreground">{deviationPeriod}</span>
-                        </div>
-                        <Slider
-                          value={[deviationPeriod]}
-                          onValueChange={([v]) => setDeviationPeriod(v)}
-                          min={20}
-                          max={200}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label className="text-xs text-muted-foreground">Força Magnética</Label>
-                          <span className="text-xs font-mono text-foreground">{magneticStrength}</span>
-                        </div>
-                        <Slider
-                          value={[magneticStrength]}
-                          onValueChange={([v]) => setMagneticStrength(v)}
-                          min={50}
-                          max={300}
-                          step={5}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
                   {/* Take Profit Settings */}
                   <div className="space-y-4">
                     <h3 className="text-sm font-medium text-success">Take Profits</h3>
@@ -239,7 +297,6 @@ export default function PairDetails() {
                             min={0.5}
                             max={15}
                             step={0.1}
-                            className="w-full"
                           />
                         </div>
                       ))}
@@ -264,7 +321,6 @@ export default function PairDetails() {
                           min={0.5}
                           max={10}
                           step={0.1}
-                          className="w-full"
                         />
                       </div>
                       
@@ -279,42 +335,72 @@ export default function PairDetails() {
                           min={1}
                           max={10}
                           step={0.1}
-                          className="w-full"
                         />
                       </div>
                     </div>
                   </div>
                   
-                  <Separator />
-                  
-                  {/* Legend */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-foreground">Legenda do Gráfico</h3>
+                  <Button className="w-full">Salvar</Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Exposição config */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Exposição
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-80 bg-card border-border overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle className="text-foreground">Configurar Exposição</SheetTitle>
+                </SheetHeader>
+                
+                <div className="mt-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label className="text-xs text-muted-foreground">Tamanho da Posição</Label>
+                        <span className="text-xs font-mono text-foreground">{positionSize}%</span>
+                      </div>
+                      <Slider
+                        value={[positionSize]}
+                        onValueChange={([v]) => setPositionSize(v)}
+                        min={1}
+                        max={100}
+                        step={1}
+                      />
+                      <p className="text-[10px] text-muted-foreground">% do capital disponível por trade</p>
+                    </div>
                     
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-0.5 bg-[hsl(142,76%,55%)]" />
-                        <span className="text-muted-foreground">EMA Escadinha</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label className="text-xs text-muted-foreground">Alavancagem</Label>
+                        <span className="text-xs font-mono text-foreground">{leverage}x</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-0.5 bg-[hsl(280,70%,50%)] border-dashed" style={{ borderTopStyle: 'dashed', borderTopWidth: 2 }} />
-                        <span className="text-muted-foreground">Linha Magnética</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-b-[8px] border-l-transparent border-r-transparent border-b-success" />
-                        <span className="text-muted-foreground">Sinal LONG</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[8px] border-l-transparent border-r-transparent border-t-destructive" />
-                        <span className="text-muted-foreground">Sinal SHORT</span>
-                      </div>
+                      <Slider
+                        value={[leverage]}
+                        onValueChange={([v]) => setLeverage(v)}
+                        min={1}
+                        max={125}
+                        step={1}
+                      />
+                      <p className="text-[10px] text-muted-foreground">Multiplicador de exposição</p>
                     </div>
                   </div>
                   
-                  {/* Save button */}
-                  <Button className="w-full" onClick={() => {}}>
-                    Salvar Configurações
-                  </Button>
+                  <Separator />
+                  
+                  <div className="p-3 rounded-lg bg-secondary/50">
+                    <p className="text-xs text-muted-foreground mb-1">Exposição Efetiva</p>
+                    <p className="text-lg font-mono font-bold text-foreground">
+                      {(positionSize * leverage).toFixed(0)}%
+                    </p>
+                  </div>
+                  
+                  <Button className="w-full">Salvar</Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -322,14 +408,14 @@ export default function PairDetails() {
             {/* Bot control - Main action */}
             <Button
               variant={status?.running ? "destructive" : "default"}
-              size="default"
+              size="sm"
               onClick={handleToggleBot}
               className={cn(
-                "gap-2 px-6 font-medium",
+                "gap-1.5 px-4 h-8 text-xs font-medium",
                 !status?.running && "bg-success hover:bg-success/90"
               )}
             >
-              <Power className="h-4 w-4" />
+              <Power className="h-3.5 w-3.5" />
               {status?.running ? 'Parar Bot' : 'Iniciar Bot'}
             </Button>
           </div>
